@@ -21,13 +21,13 @@
                         <video id="video" class="w-100 mb-3" style="display: none;"></video>
                         <canvas id="canvas" style="display: none;"></canvas>
                         <div id="results" class="mt-4">
-                            <p><strong>消費金額:</strong> [[ totalAmount ]] 元</p>
-                            <p><strong>可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
+                            <p><strong>累計金額:</strong> [[ totalAmount ]] 元</p>
+                            <p><strong>可折抵時間:</strong> [[ discountHours ]] 小時</p>
                             <p><strong>最後掃描發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
                             <p><strong>最後掃描發票日期:</strong> [[ lastInvoiceDate ]]</p>
-                            <p><strong>是否為今日消費:</strong> [[ isCurrentDate ]]</p>
+                            <p><strong>是否為本日消費:</strong> [[ isCurrentDate ]]</p>
                             <p class="text-danger">[[ message ]]</p>
-                            <button @click="resetCalculator" class="btn btn-secondary mt-3">發票計算次數重新設定</button>
+                            <button @click="resetCalculator" class="btn btn-secondary mt-3">重置發票計算次數</button>
                         </div>
                     </div>
                 </div>
