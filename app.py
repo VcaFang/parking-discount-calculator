@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, send_from_directory, jsonify, request
 from Crypto.Cipher import DES
 from Crypto.Util.Padding import unpad
 import binascii
@@ -36,7 +36,7 @@ def get_taipei_time():
 
 @app.route('/')
 def index():
-    return send_from_directory('index.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/process_qr', methods=['POST'])
 def process_qr():
@@ -48,7 +48,7 @@ def process_qr():
         
         decrypted_data = decrypt(qr_data)
         if not decrypted_data:
-            return jsonify({'success': False, 'message': 'QR Code格式有誤,讀取失敗'})
+            return jsonify({'success': False, 'message': 'QR Code格式有誤,無法辨識'})
 
         parts = decrypted_data.strip('|').split('|')
         if len(parts) >= 5:
@@ -69,7 +69,7 @@ def process_qr():
                 'is_today': is_today
             })
         else:
-            return jsonify({'success': False, 'message': '無效的 QR 碼數據格式'})
+            return jsonify({'success': False, 'message': '無效的 QR Code數據格式'})
     except Exception as e:
         print(f"Error processing QR code: {str(e)}")
         return jsonify({'success': False, 'message': f'處理 QR 碼時出錯: {str(e)}'})

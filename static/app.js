@@ -88,7 +88,7 @@ new Vue({
             })
             .catch(error => {
                 console.error('Error:', error);
-                this.message = '處理 QR 碼時出錯';
+                this.message = '處理 QR 碼時出錯，請重新掃描';
             });
         },
         resetCalculator() {
