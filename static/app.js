@@ -80,7 +80,7 @@ new Vue({
                         this.isCurrentDate = result.is_today;
                         this.message = `成功掃描發票！金額: ${result.amount}元`;
                     } else {
-                        this.message = '這張發票已經掃描過了！';
+                        this.message = '這張發票已經掃描過了，請勿重複折抵停車!';
                     }
                 } else {
                     this.message = result.message;

@@ -36,7 +36,7 @@ def get_taipei_time():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return send_from_directory('index.html')
 
 @app.route('/process_qr', methods=['POST'])
 def process_qr():
