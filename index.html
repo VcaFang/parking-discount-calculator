@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -9,29 +12,32 @@
 </head>
 <body>
     <div id="app" class="container mt-4">
-        <h1 class="text-center mb-4">裕隆城停車折抵計算器</h1>
+        <h1 id="裕隆城停車折抵計算器" class="text-center mb-4">裕隆城停車折抵計算器</h1>
+
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <div class="card">
                     <div class="card-body">
                         <div id="scanner" class="text-center mb-3">
-                            <button @click="startScanner" class="btn btn-primary" v-if="!scanning">點擊掃描小票QR Code</button>
-                            <button @click="stopScanner" class="btn btn-danger" v-if="scanning">關閉掃描相機</button>
+                            <button @click="startScanner" class="btn btn-primary">點擊掃描小票QR Code</button>
+                            <button @click="stopScanner" class="btn btn-secondary">關閉掃描相機</button>
                         </div>
-                        <video id="video" class="w-100 mb-3" style="display: none;"></video>
+
+                        <video id="video" style="display: none;"></video>
                         <canvas id="canvas" style="display: none;"></canvas>
+
                         <div id="results" class="mt-4">
-                            <p><strong>消費金額:</strong> [[ totalAmount ]] 元</p>
+                            <p><strong>累計消費金額:</strong> [[ totalAmount ]] 元</p>
                             <p><strong>可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
-                            <p><strong>發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
-                            <p><strong>發票日期:</strong> [[ lastInvoiceDate ]]</p>
+                            <p><strong>最後掃描發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
+                            <p><strong>最後掃描發票日期:</strong> [[ lastInvoiceDate ]]</p>
                             <p><strong>是否為本日消費:</strong> [[ isCurrentDate ]]</p>
-                            <p class="text-danger">[[ message ]]</p>
-                            <button @click="resetCalculator" class="btn btn-secondary mt-3">重置發票計算次數</button>
-                            <p class="text-muted mt-2">點擊後發票掃描次數將重新歸零，請謹慎使用。</p>
+                            <p>[[ message ]]</p>
+                            <button @click="resetCalculator" class="btn btn-warning">重置發票計算次數</button>
                         </div>
                     </div>
                 </div>
+
                 <div class="mt-4">
                     <h5>說明：</h5>
                     <ul>
@@ -44,8 +50,25 @@
         </div>
     </div>
 
+    <div id="scanResultModal" class="modal fade" tabindex="-1" aria-labelledby="scanResultModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="scanResultModalLabel" class="modal-title">掃描結果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div id="modalContent" class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.3.1/dist/jsQR.min.js"></script>
     <script src="./static/app.js"></script>
 </body>
 </html>
