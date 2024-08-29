@@ -15,21 +15,30 @@
                 <div class="card">
                     <div class="card-body">
                         <div id="scanner" class="text-center mb-3">
-                            <button @click="startScanner" class="btn btn-primary" v-if="!scanning">開始掃描</button>
-                            <button @click="stopScanner" class="btn btn-danger" v-if="scanning">停止掃描</button>
+                            <button @click="startScanner" class="btn btn-primary" v-if="!scanning">點擊掃描小票QR Code</button>
+                            <button @click="stopScanner" class="btn btn-danger" v-if="scanning">關閉掃描相機</button>
                         </div>
                         <video id="video" class="w-100 mb-3" style="display: none;"></video>
                         <canvas id="canvas" style="display: none;"></canvas>
                         <div id="results" class="mt-4">
-                            <p><strong>累計金額:</strong> [[ totalAmount ]] 元</p>
-                            <p><strong>可折抵時間:</strong> [[ discountHours ]] 小時</p>
-                            <p><strong>最後掃描發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
-                            <p><strong>最後掃描發票日期:</strong> [[ lastInvoiceDate ]]</p>
+                            <p><strong>消費金額:</strong> [[ totalAmount ]] 元</p>
+                            <p><strong>可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
+                            <p><strong>發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
+                            <p><strong>發票日期:</strong> [[ lastInvoiceDate ]]</p>
                             <p><strong>是否為本日消費:</strong> [[ isCurrentDate ]]</p>
                             <p class="text-danger">[[ message ]]</p>
                             <button @click="resetCalculator" class="btn btn-secondary mt-3">重置發票計算次數</button>
+                            <p class="text-muted mt-2">點擊後發票掃描次數將重新歸零，請謹慎使用。</p>
                         </div>
                     </div>
+                </div>
+                <div class="mt-4">
+                    <h5>說明：</h5>
+                    <ul>
+                        <li>累計每 1000 元可折抵一小時停車，折抵上限為四小時</li>
+                        <li>僅限當日消費可折抵停車</li>
+                        <li>每張發票僅能掃描計算一次，不得重複計算</li>
+                    </ul>
                 </div>
             </div>
         </div>
