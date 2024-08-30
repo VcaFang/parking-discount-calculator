@@ -13,6 +13,11 @@ new Vue({
         lastInvoiceDate: '',
         isCurrentDate: '',
         message: '',
+        scanResult: {
+            status: '',
+            message: ''
+        },
+        remark: ''
     },
     methods: {
         startScanner() {
@@ -70,35 +75,58 @@ new Vue({
             .then(response => response.json())
             .then(result => {
                 console.log("Received result from backend:", result);
-                if (result.success) {
-                    if (!this.scannedInvoices.has(result.invoice_number)) {
-                        this.totalAmount += result.amount;
-                        this.discountHours = Math.min(Math.floor(this.totalAmount / 1000), 4);
-                        this.scannedInvoices.add(result.invoice_number);
-                        this.lastInvoiceNumber = result.invoice_number;
-                        this.lastInvoiceDate = result.invoice_date;
-                        this.isCurrentDate = result.is_today;
-                        this.message = `成功掃描發票！金額: ${result.amount}元`;
-                    } else {
-                        this.message = '這張發票已經掃描過了，請勿重複折抵停車!';
-                    }
+                if (result.success || (!result.success && result.remark.includes('已掃描過'))) {
+                    // 無論是新掃描還是重複掃描，都顯示完整信息
+                    this.totalAmount = result.amount;
+                    this.discountHours = result.discount_hours;
+                    this.lastInvoiceNumber = result.invoice_number;
+                    this.lastInvoiceDate = result.invoice_date;
+                    this.isCurrentDate = result.is_today;
+                    this.message = result.message;
+                    this.scanResult = {
+                        status: result.success ? 'success' : 'warning',
+                        message: result.remark
+                    };
                 } else {
+                    // QR Code 格式錯誤或其他錯誤
+                    this.totalAmount = 0;
+                    this.discountHours = 0;
+                    this.lastInvoiceNumber = 'N/A';
+                    this.lastInvoiceDate = 'N/A';
+                    this.isCurrentDate = 'N';
+                    this.scanResult = {
+                        status: 'error',
+                        message: result.remark
+                    };
                     this.message = result.message;
                 }
+                this.remark = result.remark;
             })
             .catch(error => {
                 console.error('Error:', error);
                 this.message = '處理 QR 碼時出錯，請重新掃描';
+                this.scanResult = {
+                    status: 'error',
+                    message: '處理 QR 碼時出錯，請重新掃描'
+                };
+                this.remark = 'QR Code格式有誤，無法辨識';
+                this.totalAmount = 0;
+                this.discountHours = 0;
+                this.lastInvoiceNumber = 'N/A';
+                this.lastInvoiceDate = 'N/A';
+                this.isCurrentDate = 'N';
             });
         },
         resetCalculator() {
             this.totalAmount = 0;
             this.discountHours = 0;
             this.scannedInvoices.clear();
-            this.lastInvoiceNumber = '';
-            this.lastInvoiceDate = '';
-            this.isCurrentDate = '';
+            this.lastInvoiceNumber = 'N/A';
+            this.lastInvoiceDate = 'N/A';
+            this.isCurrentDate = 'N';
             this.message = '';
+            this.scanResult = { status: '', message: '' };
+            this.remark = '';
         }
     }
 });

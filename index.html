@@ -20,15 +20,22 @@
                         </div>
                         <video id="video" class="w-100 mb-3" style="display: none;"></video>
                         <canvas id="canvas" style="display: none;"></canvas>
+                        <div v-if="scanResult.status" :class="['mb-3', 'text-' + scanResult.status, 'h4']">
+                            [[ scanResult.message ]]
+                        </div>
                         <div id="results" class="mt-4">
-                            <p><strong>消費金額:</strong> [[ totalAmount ]] 元</p>
-                            <p><strong>可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
-                            <p><strong>發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
-                            <p><strong>發票日期:</strong> [[ lastInvoiceDate ]]</p>
-                            <p><strong>是否為本日消費:</strong> [[ isCurrentDate ]]</p>
+                            <p><strong>1. 消費金額:</strong> [[ totalAmount ]] 元</p>
+                            <p><strong>2. 可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
+                            <p><strong>3. 發票號碼:</strong> [[ lastInvoiceNumber ]]</p>
+                            <p><strong>4. 發票日期:</strong> [[ lastInvoiceDate ]]</p>
+                            <p><strong>5. 是否為本日消費:</strong> [[ isCurrentDate ]]</p>
                             <p class="text-danger">[[ message ]]</p>
-                            <button @click="resetCalculator" class="btn btn-secondary mt-3">重置發票計算次數</button>
-                            <p class="text-muted mt-2">點擊後發票掃描次數將重新歸零，請謹慎使用。</p>
+
+                            <div class="d-flex justify-content-between mt-3">
+                                <button @click="startScanner" class="btn btn-primary flex-grow-1 me-2">掃描下一張QR Code</button>
+                     
+                            </div>
+                      
                         </div>
                     </div>
                 </div>
