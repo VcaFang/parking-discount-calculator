@@ -98,7 +98,7 @@ def process_qr():
         decrypted_data = decrypt(qr_data)
         if not decrypted_data:
             csv_data = {
-                '掃描時間': current_time.strftime("%Y/%m/%d/%H/%M/%S GMT+8"),
+                '掃描時間': current_time.strftime("%Y/%m/%d/%H:%M:%S GMT+8"),
                 '發票號碼': 'N/A',
                 '發票日期': 'N/A',
                 '消費金額': 0,
@@ -147,12 +147,12 @@ def process_qr():
                 cursor.execute('''INSERT OR IGNORE INTO invoice_scans 
                                   (scan_time, invoice_number, invoice_date, amount, discount_hours, is_same_day) 
                                   VALUES (?, ?, ?, ?, ?, ?)''', 
-                               (current_time.strftime("%Y/%m/%d/%H/%M/%S GMT+8"), 
+                               (current_time.strftime("%Y/%m/%d/%H:%M:%S GMT+8"), 
                                 invoice_number, invoice_date, amount, discount_hours, is_today))
                 conn.commit()
 
             csv_data = {
-                '掃描時間': current_time.strftime("%Y/%m/%d/%H/%M/%S GMT+8"),
+                '掃描時間': current_time.strftime("%Y/%m/%d/%H:%M:%S GMT+8"),
                 '發票號碼': invoice_number,
                 '發票日期': invoice_date,
                 '消費金額': amount,
@@ -178,7 +178,7 @@ def process_qr():
             })
         else:
             csv_data = {
-                '掃描時間': current_time.strftime("%Y/%m/%d/%H/%M/%S GMT+8"),
+                '掃描時間': current_time.strftime("%Y/%m/%d/%H:%M:%S GMT+8"),
                 '發票號碼': 'N/A',
                 '發票日期': 'N/A',
                 '消費金額': 0,
@@ -196,7 +196,7 @@ def process_qr():
     except Exception as e:
         print(f"Error processing QR code: {str(e)}")
         csv_data = {
-            '掃描時間': current_time.strftime("%Y/%m/%d/%H/%M/%S GMT+8"),
+            '掃描時間': current_time.strftime("%Y/%m/%d/%H:%M:%S GMT+8"),
             '發票號碼': 'N/A',
             '發票日期': 'N/A',
             '消費金額': 0,
