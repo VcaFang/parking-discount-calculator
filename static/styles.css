@@ -19,12 +19,3 @@ body {
         padding: 1rem;
     }
 }
-
-/* 新增的樣式 */
-.modal-body p {
-    margin-bottom: 0.5rem;
-}
-
-.text-danger {
-    color: #dc3545;
-}
