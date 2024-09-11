@@ -14,8 +14,8 @@
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <div v-if="!isVerified" class="text-center">
-                    <h2>請輸入人員代碼</h2>
-                    <input type="text" v-model="userCode" class="form-control" placeholder="人員代碼 (6碼)">
+                    <h2>請輸入通行代碼</h2>
+                    <input type="text" v-model="userCode" class="form-control" placeholder="通行代碼 (6碼)">
                     <button @click="verifyCode" class="btn btn-primary mt-3">驗證</button>
                     
                     <div v-if="errorMessage" class="text-danger mt-3">[[ errorMessage ]]</div>
@@ -41,7 +41,7 @@
                         <!-- "繼續掃碼" 和 "完成掃碼進行計算" 按鈕 -->
                         <div v-if="batchScanning && !batchCompleted" class="mt-3">
                             <button @click="continueScan" class="btn btn-primary me-2">繼續掃碼</button>
-                            <button @click="completeBatch" class="btn btn-success">完成掃核銷計算</button>
+                            <button @click="completeBatch" class="btn btn-success">完成掃碼進行計算</button>
                         </div>
 
                         <!-- 結果顯示區塊 -->
@@ -52,7 +52,7 @@
                             <p><strong>可折抵機車停車台數：</strong> [[ motorcycleCount ]] 台</p>
 
                             <div class="mt-3">
-                                <p>請選擇本次折抵車輛類型：</p>
+                                <p>請選擇本次折抵車輛類型進行核銷：</p>
                                 <button @click="selectVehicleType('car')" class="btn btn-primary me-2">汽車</button>
                                 <button @click="selectVehicleType('motorcycle')" class="btn btn-primary me-2">機車</button>
                                 <button @click="selectVehicleType('none')" class="btn btn-secondary">都不折抵</button>
@@ -72,8 +72,7 @@
                 <li>每張發票僅能掃描計算一次，不得重複計算</li>
                 <li>累計每 1000 元可折抵一小時停車，折抵上限為四小時</li>
                 <li>累計每 200 元可折抵一台機車停車，折抵上限為10台</li>
-                <li>每次掃描僅能選擇汽車或機車,機車與汽車不可同時折抵,如有同時折抵需求請分開批次掃描</li>
-                <li>一經掃碼無論是否該次是否選擇折抵，系統都將自動核銷，無法再次進行折抵計算</li>
+                <li>每次掃描僅能選擇汽車或機車,機車與汽車不可同時折抵,如有多台車輛折抵需求，請分開批次掃描</li>
             </ul>
         </div>
         <!-- 在適當的位置添加以下代碼 -->

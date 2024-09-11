@@ -133,6 +133,8 @@ new Vue({
                         status: 'success',
                         message: result.message
                     };
+                    // 可以在這裡添加發票到本地列表的邏輯
+                    // this.batchResults.push(result);
                 } else {
                     this.scanResult = {
                         status: 'error',
