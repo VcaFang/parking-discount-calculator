@@ -153,33 +153,65 @@ new Vue({
             });
         },
         selectVehicleType(type) {
-            fetch('/complete_batch', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    batch_id: this.batchId,
-                    vehicle_type: type
+            if (type === 'cancel') {
+                // 調用後端來取消批次寫入
+                fetch('/cancel_batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        batch_id: this.batchId
+                    })
                 })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(() => {
-                this.resetCalculator();
-                this.batchCompleted = false;
-                this.batchScanning = false;
-                console.log('Batch completed successfully with vehicle type:', type);
-                this.message = '批次處理完成，車輛類型已更新。';
-            })
-            .catch(error => {
-                console.error('完成批次掃描時出錯:', error);
-                this.message = '完成批次掃描時出錯，請稍後再試。';
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // 重置計算器，回到掃描頁面
+                    this.resetCalculator();
+                    this.batchCompleted = false;
+                    this.batchScanning = false;
+                    console.log('Batch canceled successfully');
+                    this.message = '批次已取消，未進行任何折抵。';
+                })
+                .catch(error => {
+                    console.error('取消批次時出錯:', error);
+                    this.message = '取消批次時出錯，請稍後再試。';
+                });
+            } else {
+                // 其他車輛類型處理邏輯
+                fetch('/complete_batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        batch_id: this.batchId,
+                        vehicle_type: type
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    this.resetCalculator();
+                    this.batchCompleted = false;
+                    this.batchScanning = false;
+                    console.log('Batch completed successfully with vehicle type:', type);
+                    this.message = '批次處理完成，車輛類型已更新。';
+                })
+                .catch(error => {
+                    console.error('完成批次掃描時出錯:', error);
+                    this.message = '完成批次掃描時出錯，請稍後再試。';
+                });
+            }
         },
         startScanner() {
             console.log("嘗試啟動相機");
@@ -244,18 +276,19 @@ new Vue({
             }
         },
         
-        resetCalculator() {
-            this.totalAmount = 0;
-            this.discountHours = 0;
-            this.validInvoices = 0;
-            this.motorcycleCount = 0;
-            this.scannedInvoices.clear();
-            this.lastInvoiceNumber = '';
-            this.lastInvoiceDate = '';
-            this.isCurrentDate = '';
-            this.message = '';
-            this.scanResult = { status: '', message: '' };
-            this.remark = '';
-        }
+    // 重置計算器的方法
+    resetCalculator() {
+        this.totalAmount = 0;
+        this.discountHours = 0;
+        this.validInvoices = 0;
+        this.motorcycleCount = 0;
+        this.scannedInvoices.clear();
+        this.lastInvoiceNumber = '';
+        this.lastInvoiceDate = '';
+        this.isCurrentDate = '';
+        this.message = '';
+        this.scanResult = { status: '', message: '' };
+        this.remark = '';
     }
+}
 });

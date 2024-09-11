@@ -55,8 +55,9 @@
                                 <p>請選擇本次折抵車輛類型進行核銷：</p>
                                 <button @click="selectVehicleType('car')" class="btn btn-primary me-2">汽車</button>
                                 <button @click="selectVehicleType('motorcycle')" class="btn btn-primary me-2">機車</button>
-                                <button @click="selectVehicleType('none')" class="btn btn-secondary">都不折抵</button>
-                                <li>即使選擇不折抵，系統亦已完成核銷，此發票無法再次進行折抵計算</li>
+                                <button @click="selectVehicleType('cancel')" class="btn btn-secondary">取消此次折抵</button>
+                                <li> 如選擇「取消此次折抵」，系統將不紀錄，發票可於下次再次進行折抵。
+                                </li>
                             </div>
                         </div>
                         

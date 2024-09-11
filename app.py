@@ -208,6 +208,31 @@ def process_batch():
 
     return jsonify(response_data)
 
+# 新增取消批次的路由
+@app.route('/cancel_batch', methods=['POST'])
+def cancel_batch():
+    data = request.get_json()
+    batch_id = data.get('batch_id')
+
+    try:
+        # 這裡需要根據你的邏輯來處理批次取消
+        # 例如，將該批次從數據庫中移除，或標記為「未處理」
+        # 若用到了CSV文件，可以選擇不寫入該批次數據
+
+        # 假設你有一個函數可以處理批次刪除/取消
+        cancel_batch_in_database(batch_id)
+        
+        return jsonify({"message": "Batch canceled successfully"}), 200
+    except Exception as e:
+        print(f"Error canceling batch: {e}")
+        return jsonify({"error": "Failed to cancel batch"}), 500
+
+# 假設的取消批次函數
+def cancel_batch_in_database(batch_id):
+    # 這裡添加你的邏輯來處理數據庫或CSV的數據取消
+    # 比如可以從數據庫中刪除該批次記錄
+    pass
+
 @app.route('/complete_batch', methods=['POST'])
 def complete_batch():
     batch_id = request.json['batch_id']
