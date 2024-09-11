@@ -8,13 +8,34 @@ import csv
 import os
 import json
 import sqlite3
+import time
+import logging
+import traceback
 from datetime import datetime, timedelta, timezone
-import msvcrt  # 用於 Windows 文件鎖定
+from io import StringIO
+import threading
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 # DES 加解密設置
 KEY = b"RAdWIMPs"  # 8 bytes key
 IV = b"RAdWIMPs"   # 8 bytes IV
+
+# 配置日誌
+logging.basicConfig(filename='app.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 允許的驗證碼列表，放在後端而非前端
+ALLOWED_CODES = ['AB1234', 'AB1235', 'AB0000', 'AA0000', 'BB1234']
+@app.route('/verify_code', methods=['POST'])
+def verify_code():
+    data = request.get_json()
+    user_code = data.get('user_code')
+
+    if user_code in ALLOWED_CODES:
+        return jsonify({'is_valid': True}), 200
+    else:
+        return jsonify({'is_valid': False}), 200
 
 DB_NAME = 'invoices.db'
 
@@ -33,13 +54,15 @@ def init_db():
                   is_same_day TEXT,
                   store_id TEXT,
                   crm_id TEXT,
-                  vehicle_type TEXT)''')
+                  vehicle_type TEXT,
+                  user_code TEXT)''')  # 新增 user_code 欄位
     conn.execute('''CREATE TABLE IF NOT EXISTS batches
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   batch_id TEXT UNIQUE,
                   start_time TEXT,
                   status TEXT)''')
     conn.close()
+
 
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
@@ -84,6 +107,17 @@ def start_batch():
 def process_qr():
     qr_data = request.json['qr_data']
     batch_id = request.json['batch_id']
+    
+    # 檢查批次是否存在且狀態是否為 'started'
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM batches WHERE batch_id = ?", (batch_id,))
+    batch = cursor.fetchone()
+    conn.close()
+    
+    if not batch or batch['status'] != 'started':
+        return jsonify({'error': 'Invalid batch or batch not in progress'}), 400
+    
     return jsonify(process_single_qr(qr_data, batch_id))
 
 def process_single_qr(qr_data, batch_id):
@@ -176,6 +210,8 @@ def process_single_qr(qr_data, batch_id):
 @app.route('/process_batch', methods=['POST'])
 def process_batch():
     batch_id = request.json['batch_id']
+    user_code = request.json.get('user_code')
+    print(f"Received batch_id: {batch_id}, user_code: {user_code}")
     
     if batch_id not in batch_invoices or 'invoice_data' not in batch_invoices:
         return jsonify({'error': 'Invalid batch ID or no invoice data'}), 400
@@ -193,7 +229,8 @@ def process_batch():
         'total_discount_hours': total_discount_hours,
         'valid_invoices': valid_invoices,
         'motorcycle_count': motorcycle_count,
-        'batch_id': batch_id
+        'batch_id': batch_id,
+        'user_code': user_code  # 用戶通行碼
     }
 
     conn = get_db_connection()
@@ -237,7 +274,10 @@ def cancel_batch_in_database(batch_id):
 def complete_batch():
     batch_id = request.json['batch_id']
     vehicle_type = request.json['vehicle_type']
-    
+    user_code = request.json.get('user_code')
+    print(f"Starting complete_batch with batch_id: {batch_id}, vehicle_type: {vehicle_type}, user_code: {user_code}")
+    print(f"Full request JSON: {request.json}")
+
     if batch_id not in batch_invoices or 'invoice_data' not in batch_invoices:
         return jsonify({'error': 'Invalid batch ID or no invoice data'}), 400
 
@@ -245,23 +285,22 @@ def complete_batch():
     try:
         conn.execute("BEGIN TRANSACTION")
         
-        # 獲取批次中的所有發票
         invoice_numbers = batch_invoices[batch_id]
         
         for invoice_number in invoice_numbers:
             invoice_data = batch_invoices['invoice_data'][invoice_number]
-            conn.execute('''INSERT INTO invoice_scans 
-                            (batch_id, scan_time, invoice_number, invoice_date, amount, is_same_day, store_id, crm_id, vehicle_type)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+            # 使用 INSERT OR IGNORE 來避免重複插入
+            conn.execute('''INSERT OR IGNORE INTO invoice_scans 
+                            (batch_id, scan_time, invoice_number, invoice_date, amount, is_same_day, store_id, crm_id, vehicle_type, user_code)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
                          (batch_id, datetime.now().isoformat(), invoice_number, invoice_data['invoice_date'], 
-                          invoice_data['amount'], 'Y', invoice_data['store_id'], invoice_data['crm_id'], vehicle_type))
+                          invoice_data['amount'], 'Y', invoice_data['store_id'], invoice_data['crm_id'], vehicle_type, user_code))
         
-        # 更新批次狀態
         conn.execute("UPDATE batches SET status = ? WHERE batch_id = ?", ('completed', batch_id))
         
         conn.commit()
         
-        # 獲取更新後的發票記錄用於CSV寫入
+        # 獲取成功插入的記錄
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM invoice_scans WHERE batch_id = ?", (batch_id,))
         results = cursor.fetchall()
@@ -271,7 +310,8 @@ def complete_batch():
         
         # 清理批次數據
         del batch_invoices[batch_id]
-        del batch_invoices['invoice_data']
+        if 'invoice_data' in batch_invoices:
+            del batch_invoices['invoice_data']
         
         return jsonify({'success': True})
     except Exception as e:
@@ -281,30 +321,59 @@ def complete_batch():
     finally:
         conn.close()
 
+# 創建一個全局鎖
+csv_lock = threading.Lock()
+
 def write_to_csv(results):
     filename = 'invoice_records.csv'
-    fieldnames = ['掃描批次編號', '掃描時間', '發票號碼', '發票日期', '消費金額', '店家編號', 'CRM專櫃編號', '本次折抵車輛類型', 'Remark']
+    fieldnames = ['掃描批次編號', '掃描時間', '發票號碼', '發票日期', '消費金額', '店家編號', 'CRM專櫃編號', '本次折抵車輛類型', 'User Code', 'Remark']
     
-    with open(filename, 'a', newline='') as csvfile:
+    logger.info(f"Starting CSV write for {len(results)} records")
+
+    # 先將數據寫入內存
+    try:
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        for result in results:
+            logger.debug(f"Writing CSV row: batch_id={result['batch_id']}, invoice_number={result['invoice_number']}, user_code={result['user_code']}")
+            writer.writerow({
+                '掃描批次編號': result['batch_id'],
+                '掃描時間': result['scan_time'],
+                '發票號碼': result['invoice_number'],
+                '發票日期': result['invoice_date'],
+                '消費金額': result['amount'],
+                '店家編號': result['store_id'],
+                'CRM專櫃編號': result['crm_id'],
+                '本次折抵車輛類型': result['vehicle_type'],
+                'User Code': result['user_code'],
+                'Remark': ''
+            })
+        
+        with csv_lock:
+            with open(filename, 'a', newline='') as csvfile:
+                if csvfile.tell() == 0:
+                    csvfile.write(','.join(fieldnames) + '\n')
+                csvfile.write(output.getvalue())
+        
+        logger.info(f"CSV write completed successfully")
+    except Exception as e:
+        logger.error(f"Error occurred while writing to CSV: {str(e)}")
+        logger.error("Full traceback:")
+        logger.error(traceback.format_exc())
+        raise  # 重新拋出異常,以便調用者知道發生了錯誤
+
+
+def write_to_csv_with_retry(results, max_retries=3, delay=1):
+    for attempt in range(max_retries):
         try:
-            msvcrt.locking(csvfile.fileno(), msvcrt.LK_LOCK, 1)  # 鎖定文件
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            if csvfile.tell() == 0:
-                writer.writeheader()
-            for result in results:
-                writer.writerow({
-                    '掃描批次編號': result['batch_id'],
-                    '掃描時間': result['scan_time'],
-                    '發票號碼': result['invoice_number'],
-                    '發票日期': result['invoice_date'],
-                    '消費金額': result['amount'],
-                    '店家編號': result['store_id'],
-                    'CRM專櫃編號': result['crm_id'],
-                    '本次折抵車輛類型': result['vehicle_type'],
-                    'Remark': ''
-                })
-        finally:
-            msvcrt.locking(csvfile.fileno(), msvcrt.LK_UNLCK, 1)  # 解鎖文件
+            write_to_csv(results)
+            return  # 如果成功，直接返回
+        except PermissionError as e:
+            if attempt < max_retries - 1:  # 如果不是最後一次嘗試
+                print(f"寫入失敗，{delay}秒後重試: {e}")
+                time.sleep(delay)
+            else:
+                raise  # 如果是最後一次嘗試，則拋出異常
 
 if __name__ == '__main__':
     init_db()

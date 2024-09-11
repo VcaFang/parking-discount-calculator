@@ -26,7 +26,6 @@ new Vue({
         batchResults: [],
         isVerified: false,
         userCode: '',
-        allowedCodes: ['AB1234', 'AB1235', 'AB0000','AA0000','BB1234'], // 允許的代碼列表
         errorMessage: ''
     },
     mounted() {
@@ -34,12 +33,27 @@ new Vue({
     },
     methods: {
         verifyCode() {
-            if (this.allowedCodes.includes(this.userCode)) {
-                this.isVerified = true; // 驗證通過，允許進入掃描頁面
-                this.errorMessage = '';
-            } else {
-                this.errorMessage = '代碼驗證失敗，請重新輸入！';
-            }
+            // 發送用戶輸入的代碼到後端進行驗證
+            fetch('/verify_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_code: this.userCode })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.is_valid) {
+                    this.isVerified = true; // 後端驗證通過，允許進入掃描頁面
+                    this.errorMessage = '';
+                } else {
+                    this.errorMessage = '代碼驗證失敗，請重新輸入！';
+                }
+            })
+            .catch(error => {
+                console.error('驗證代碼時出錯:', error);
+                this.errorMessage = '驗證代碼時出錯，請稍後再試。';
+            });
         },
         
         startBatchScan() {
@@ -75,13 +89,16 @@ new Vue({
         completeBatch() {
             this.stopScanner();
             console.log('Current batch ID before sending to server:', this.batchId);
+            console.log('User Code before sending to server:', this.userCode);  // 確認 user_code 的值
+        
             fetch('/process_batch', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    batch_id: this.batchId
+                    batch_id: this.batchId,
+                    user_code: this.userCode  // 傳遞用戶的通行代碼
                 })
             })
             .then(response => {
@@ -113,6 +130,7 @@ new Vue({
                 this.message = '處理批次掃描時出錯，請稍後再試。';
             });
         },
+        
 
         processQRCode(data) {
             console.log("Sending QR data to backend:", data);
@@ -191,7 +209,8 @@ new Vue({
                     },
                     body: JSON.stringify({
                         batch_id: this.batchId,
-                        vehicle_type: type
+                        vehicle_type: type,
+                        user_code: this.userCode  
                     })
                 })
                 .then(response => {
