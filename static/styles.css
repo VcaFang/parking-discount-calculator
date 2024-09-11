@@ -1,5 +1,3 @@
-
-
 :root {
     --main-red: #D6001C;
     --subordinate-yellow: #FFAD00;
@@ -9,40 +7,96 @@
 body {
     background-color: #ffffff;
     color: #333333;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #000000;
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* 放大累積有效發票金額、可折抵停車時數和本次有效發票張數的字體 */
+#total-amount, #total-discount-hours, #total-valid-invoices {
+    font-size: 1.75em; /* 放大字體 */
+    font-weight: bold; /* 加粗字體 */
+    margin-bottom: 15px; /* 增加間距 */
 }
 
 .card {
-    border-color: var(--main-red);
+    border: 2px solid var(--main-red);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .btn-primary {
     background-color: var(--main-red);
-    border-color: var(--main-red);
+    color: #ffffff;
 }
 
 .btn-primary:hover, .btn-primary:focus {
-    background-color: #e69b00;
-    border-color: #e69b00;
+    background-color: #b0001c;
 }
 
 .btn-warning {
     background-color: var(--subordinate-yellow);
-    border-color: var(--subordinate-yellow);
     color: #ffffff;
 }
 
 .btn-warning:hover, .btn-warning:focus {
     background-color: #e69b00;
-    border-color: #e69b00;
+}
+
+.btn-success {
+    background-color: var(--subordinate-gold);
     color: #ffffff;
 }
 
-h1 {
-    color: #000000;
+.btn-success:hover, .btn-success:focus {
+    background-color: #a87233;
+}
+
+#results p {
+    font-size: 16px;
+    margin-bottom: 10px;
 }
 
 h5 {
     color: var(--main-red);
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+ul li {
+    margin-bottom: 10px;
 }
 
 .text-success {
@@ -51,4 +105,27 @@ h5 {
 
 .text-warning, .text-error {
     color: var(--main-red) !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+.mt-3 {
+    margin-top: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.col-md-6.offset-md-3 {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 768px) {
+    .col-md-6.offset-md-3 {
+        width: 50%;
+    }
 }

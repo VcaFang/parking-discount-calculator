@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>裕隆城停車折抵計算器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="app" class="container mt-4">
+        <h1 class="text-center mb-4">裕隆城停車折抵計算器</h1>
+
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div v-if="!isVerified" class="text-center">
+                    <h2>請輸入人員代碼</h2>
+                    <input type="text" v-model="userCode" class="form-control" placeholder="人員代碼 (6碼)">
+                    <button @click="verifyCode" class="btn btn-primary mt-3">驗證</button>
+                    
+                    <div v-if="errorMessage" class="text-danger mt-3">[[ errorMessage ]]</div>
+                </div>
+                <div v-if="isVerified">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="scanner" class="text-center mb-3">
+                            <button @click="startBatchScan" v-if="!batchScanning" class="btn btn-primary">點擊掃描</button>
+                            <button @click="stopBatchScan" v-if="batchScanning" class="btn btn-warning">關閉相機</button>
+                            
+                            <!-- 更新的 video 和 canvas 元素，使用百分比來調整大小 -->
+                            <video id="video" style="display: block; width: 100%; height: auto;"></video>
+                            <canvas id="canvas" style="display: none; width: 100%; height: auto;"></canvas>
+                        </div>
+
+
+                        <div v-if="scanResult.status && !batchCompleted" :class="['mb-3', 'text-' + scanResult.status, 'h4']">
+                            [[ scanResult.message ]]
+                        </div>
+                        
+
+                        <!-- "繼續掃碼" 和 "完成掃碼進行計算" 按鈕 -->
+                        <div v-if="batchScanning && !batchCompleted" class="mt-3">
+                            <button @click="continueScan" class="btn btn-primary me-2">繼續掃碼</button>
+                            <button @click="completeBatch" class="btn btn-success">完成掃核銷計算</button>
+                        </div>
+
+                        <!-- 結果顯示區塊 -->
+                        <div id="results" class="mt-4" v-if="batchCompleted">
+                            <p><strong>本次有效發票張數:</strong> [[ validInvoices ]]</p>
+                            <p><strong>累積有效發票金額:</strong> [[ totalAmount ]] 元</p>
+                            <p><strong>可折抵停車時數:</strong> [[ discountHours ]] 小時</p>
+                            <p><strong>可折抵機車停車台數：</strong> [[ motorcycleCount ]] 台</p>
+
+                            <div class="mt-3">
+                                <p>請選擇本次折抵車輛類型：</p>
+                                <button @click="selectVehicleType('car')" class="btn btn-primary me-2">汽車</button>
+                                <button @click="selectVehicleType('motorcycle')" class="btn btn-primary me-2">機車</button>
+                                <button @click="selectVehicleType('none')" class="btn btn-secondary">都不折抵</button>
+                                <li>即使選擇不折抵，系統亦已完成核銷，此發票無法再次進行折抵計算</li>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h5>說明：</h5>
+            <ul>
+                <li>僅限當日消費可折抵停車</li>
+                <li>每張發票僅能掃描計算一次，不得重複計算</li>
+                <li>累計每 1000 元可折抵一小時停車，折抵上限為四小時</li>
+                <li>累計每 200 元可折抵一台機車停車，折抵上限為10台</li>
+                <li>每次掃描僅能選擇汽車或機車,機車與汽車不可同時折抵,如有同時折抵需求請分開批次掃描</li>
+                <li>一經掃碼無論是否該次是否選擇折抵，系統都將自動核銷，無法再次進行折抵計算</li>
+            </ul>
+        </div>
+        <!-- 在適當的位置添加以下代碼 -->
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.3.1/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
