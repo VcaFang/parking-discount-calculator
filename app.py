@@ -4,6 +4,9 @@ from Crypto.Util.Padding import unpad
 from collections import defaultdict
 import binascii
 import requests
+from PIL import Image
+from pyzbar.pyzbar import decode
+import io
 import csv
 import os
 import json
@@ -96,6 +99,7 @@ def start_batch():
                      (batch_id, datetime.now().isoformat(), 'started'))
         conn.commit()
         batch_invoices[batch_id] = set()  # 初始化該批次的發票集合
+        print(f"New batch started: {batch_id}")  # 添加日志
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         return jsonify({'error': 'Failed to start batch'}), 500
@@ -103,11 +107,17 @@ def start_batch():
         conn.close()
     return jsonify({'batch_id': batch_id})
 
+# 修改大約第140行的process_qr函數
 @app.route('/process_qr', methods=['POST'])
 def process_qr():
-    qr_data = request.json['qr_data']
-    batch_id = request.json['batch_id']
-    
+    data = request.json
+    qr_data = data.get('qr_data')
+    batch_id = data.get('batch_id')
+    input_type = data.get('input_type', 'qr')  # 新增：標識輸入類型
+
+
+    print(f"Processing QR for batch: {batch_id}, input type: {input_type}")  # 添加日志
+
     # 檢查批次是否存在且狀態是否為 'started'
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -118,7 +128,9 @@ def process_qr():
     if not batch or batch['status'] != 'started':
         return jsonify({'error': 'Invalid batch or batch not in progress'}), 400
     
-    return jsonify(process_single_qr(qr_data, batch_id))
+    result = process_single_qr(qr_data, batch_id)
+    result['input_type'] = input_type  # 在結果中包含輸入類型
+    return jsonify(result)
 
 def process_single_qr(qr_data, batch_id):
     try:
@@ -127,6 +139,7 @@ def process_single_qr(qr_data, batch_id):
 
         if qr_data.startswith('YLC'):
             qr_data = qr_data[3:]
+
         
         decrypted_data = decrypt(qr_data)
         if not decrypted_data:
@@ -168,14 +181,14 @@ def process_single_qr(qr_data, batch_id):
         # 檢查2: 數據庫重複檢查
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT invoice_number FROM invoice_scans WHERE invoice_number = ? AND invoice_date = ?",
-                       (invoice_number, invoice_date))
+        cursor.execute("SELECT invoice_number FROM invoice_scans WHERE invoice_number = ? ",
+                       (invoice_number,))
         if cursor.fetchone():
             conn.close()
             return {
                 'is_valid': False,
-                'message': '這張發票已經掃描過了，請勿重複折抵停車!',
-                'remark': '本發票今日已掃描過，勿重複折抵'
+                'message': '這張發票已經折抵過了，請勿重複折抵停車!',
+                'remark': '本發票今日已折抵過，勿重複折抵'
             }
 
         # 如果通過了所有檢查，將發票號碼添加到當前批次的集合中
@@ -207,6 +220,25 @@ def process_single_qr(qr_data, batch_id):
             'remark': 'QR Code格式有誤，無法辨識'
         }
 
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file:
+        # 讀取圖片
+        image = Image.open(io.BytesIO(file.read()))
+        # 解碼QR碼
+        decoded_objects = decode(image)
+        if len(decoded_objects) == 0:
+            return jsonify({'error': 'No QR code found in the image'}), 400
+        # 假設我們只處理找到的第一個QR碼
+        qr_data = decoded_objects[0].data.decode('utf-8')
+        # 使用現有的process_single_qr函數處理QR碼數據
+        return jsonify(process_single_qr(qr_data, request.form.get('batch_id')))
+    
 @app.route('/process_batch', methods=['POST'])
 def process_batch():
     batch_id = request.json['batch_id']
@@ -215,7 +247,14 @@ def process_batch():
     
     if batch_id not in batch_invoices or 'invoice_data' not in batch_invoices:
         return jsonify({'error': 'Invalid batch ID or no invoice data'}), 400
-
+    valid_invoices = [invoice for invoice in batch_invoices[batch_id] if invoice in batch_invoices['invoice_data']]
+    
+    if not valid_invoices:
+        # 如果沒有有效發票，返回特定的消息
+        return jsonify({
+            'status': 'no_valid_invoices',
+            'message': '目前沒有有效發票可供計算。請重新開始新的批次掃描。'
+        })
     invoices = [batch_invoices['invoice_data'][inv_num] for inv_num in batch_invoices[batch_id]]
     
     total_amount = sum(invoice['amount'] for invoice in invoices)

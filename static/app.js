@@ -55,7 +55,31 @@ new Vue({
                 this.errorMessage = '驗證代碼時出錯，請稍後再試。';
             });
         },
-        
+        // 在大約第300行之後添加
+uploadImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('batch_id', this.batchId);
+
+    fetch('/upload_image', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        this.processQRResult(result);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        this.scanResult = {
+            status: 'error',
+            message: '處理圖片時出錯，請重試：' + error.message
+        };
+    });
+},
         startBatchScan() {
             this.batchScanning = true;
             this.batchCompleted = false; // 確保在開始掃碼時 batchCompleted 為 false
@@ -78,6 +102,16 @@ new Vue({
                 console.error('開啟掃描時出錯:', error);
                 this.message = '開啟掃描時出錯，請稍後再試。';
             });
+        },
+        initializeAllScanningMethods() {
+            this.initializeBarcodeScanning();
+            // 初始化其他掃描方法...
+        },
+        
+        initializeBarcodeScanning() {
+            // 重新绑定条码扫描事件
+            document.removeEventListener('keypress', this.handleBarcodeInput);
+            document.addEventListener('keypress', this.handleBarcodeInput);
         },
         stopBatchScan() {
             this.batchScanning = false;
@@ -131,45 +165,69 @@ new Vue({
             });
         },
         
-
-        processQRCode(data) {
-            console.log("Sending QR data to backend:", data);
-        
-            fetch('/process_qr', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ qr_data: data, batch_id: this.batchId })
-            })
-            .then(response => response.json())
-            .then(result => {
-                console.log("Received result from backend:", result);
-        
-                if (result.is_valid) {
-                    this.scanResult = {
-                        status: 'success',
-                        message: result.message
-                    };
-                    // 可以在這裡添加發票到本地列表的邏輯
-                    // this.batchResults.push(result);
-                } else {
-                    this.scanResult = {
-                        status: 'error',
-                        message: result.message
-                    };
-                }
-        
-                this.$forceUpdate();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                this.scanResult = {
-                    status: 'error',
-                    message: '處理 QR 碼時出錯，請重新掃描：' + error.message
-                };
-            });
+        resetBatch() {
+            // 重置批次相關的數據
+            this.batchId = null;
+            this.totalAmount = 0;
+            this.discountHours = 0;
+            this.validInvoices = 0;
+            this.motorcycleCount = 0;
+            this.batchCompleted = false;
+            this.batchScanning = false;
+            // 可能需要調用後端的某個 API 來重置服務器端的批次狀態
+            // 例如：
+            // fetch('/reset_batch', { method: 'POST' })
+            //     .then(() => console.log('Batch reset on server'))
+            //     .catch(error => console.error('Error resetting batch:', error));
         },
+
+// 修改大約第140行的processQRCode方法
+processQRCode(data, inputType = 'qr') {
+    console.log("Sending data to backend:", data);
+
+    fetch('/process_qr', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            qr_data: data, 
+            batch_id: this.batchId,
+            input_type: inputType
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        this.processQRResult(result);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        this.scanResult = {
+            status: 'error',
+            message: '處理數據時出錯，請重試：' + error.message
+        };
+    });
+},
+
+processQRResult(result) {
+    console.log("Received result from backend:", result);
+
+    if (result.is_valid) {
+        this.scanResult = {
+            status: 'success',
+            message: result.message
+        };
+        // 可以在這裡添加發票到本地列表的邏輯
+        // this.batchResults.push(result);
+    } else {
+        this.scanResult = {
+            status: 'error',
+            message: result.message
+        };
+    }
+
+    this.$forceUpdate();
+},
         selectVehicleType(type) {
             if (type === 'cancel') {
                 // 調用後端來取消批次寫入
@@ -232,36 +290,62 @@ new Vue({
                 });
             }
         },
-        startScanner() {
-            console.log("嘗試啟動相機");
-            this.video = document.getElementById('video');
-            this.canvas = document.getElementById('canvas');
-            if (!this.video || !this.canvas) {
-                console.error("無法找到視頻或畫布元素");
-                this.message = "無法找到視頻或畫布元素，請確保頁面正確加載。";
-                return;
-            }
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                console.error("瀏覽器不支持 getUserMedia");
-                this.message = "您的瀏覽器不支持相機功能，請嘗試使用其他瀏覽器。";
-                return;
-            }
-            this.context = this.canvas.getContext('2d');
+// 修改大約第200行的startScanner方法
+startScanner() {
+    console.log("嘗試啟動相機");
+    this.video = document.getElementById('video');
+    this.canvas = document.getElementById('canvas');
+    if (!this.video || !this.canvas) {
+        console.error("無法找到視頻或畫布元素");
+        this.message = "無法找到視頻或畫布元素，請確保頁面正確加載。";
+        return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error("瀏覽器不支持 getUserMedia");
+        this.message = "您的瀏覽器不支持相機功能，請嘗試使用其他瀏覽器。";
+        return;
+    }
+    this.context = this.canvas.getContext('2d');
 
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then((stream) => {
-                    this.video.srcObject = stream;
-                    this.video.setAttribute('playsinline', true);
-                    this.video.play();
-                    this.scanning = true;
-                    requestAnimationFrame(this.scan);
-                    this.video.style.display = 'block';
-                })
-                .catch((error) => {
-                    console.error("無法啟動相機:", error);
-                    this.message = "無法啟動相機，請確保您已授予相機權限。";
-                });
-        },
+    navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            facingMode: "environment",
+            advanced: [{focusMode: "continuous"}]
+        } 
+    })
+    .then((stream) => {
+        this.video.srcObject = stream;
+        this.video.setAttribute('playsinline', true);
+        this.video.play();
+        this.scanning = true;
+        requestAnimationFrame(this.scan);
+        this.video.style.display = 'block';
+    })
+    .catch((error) => {
+        console.error("無法啟動相機:", error);
+        this.message = "無法啟動相機，請確保您已授予相機權限。";
+    });
+},
+// 在大約第350行之後添加
+handleBarcodeInput(event) {
+    console.log("event.key = " + event.key);
+    console.log("this.barcodeInput = " + this.barcodeInput);
+    if (event.key === 'Enter') {
+        if (!this.batchId) {
+            console.error("No active batch");
+            this.message = "請先開始新的批次掃描";
+            return;
+        }
+        // 處理完整的條碼
+        
+        this.processQRCode(this.barcodeInput, 'barcode');
+        this.barcodeInput = '';  // 重置輸入
+
+    } else {
+        // 累積輸入
+        this.barcodeInput += event.key;
+    }
+},
         stopScanner() {
             this.scanning = false;
             if (this.video && this.video.srcObject) {

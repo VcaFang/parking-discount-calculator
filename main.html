@@ -24,8 +24,12 @@
                 <div class="card">
                     <div class="card-body">
                         <div id="scanner" class="text-center mb-3">
-                            <button @click="startBatchScan" v-if="!batchScanning" class="btn btn-primary">點擊掃描</button>
-                            <button @click="stopBatchScan" v-if="batchScanning" class="btn btn-warning">關閉相機</button>
+                            <button @click="startBatchScan" v-if="!batchScanning" class="btn btn-primary" >點擊開始掃描</button>
+                            <!-- 在大約第20行左右，掃描按鈕旁邊添加 -->
+<input type="file" @change="uploadImage" accept="image/*" style="display: none;" ref="fileInput">
+<button @click="$refs.fileInput.click()" class="btn btn-secondary" id="upload_btn">上傳QR Code</button>
+
+<input type="text" v-model="barcodeInput" @keypress="handleBarcodeInput" placeholder="條碼掃描前，須將滑鼠游標放置在框中" class="form-control mt-2" id="barcode_input">
                             
                             <!-- 更新的 video 和 canvas 元素，使用百分比來調整大小 -->
                             <video id="video" style="display: block; width: 100%; height: auto;"></video>
@@ -42,6 +46,8 @@
                         <div v-if="batchScanning && !batchCompleted" class="mt-3">
                             <button @click="continueScan" class="btn btn-primary me-2">繼續掃碼</button>
                             <button @click="completeBatch" class="btn btn-success">完成掃碼進行計算</button>
+                            <div v-if="message" class="alert alert-info">{{ message }}</div>
+
                         </div>
 
                         <!-- 結果顯示區塊 -->
